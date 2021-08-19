@@ -1,0 +1,10 @@
+version: '3.7'
+services:
+  rip:
+    build: .
+    container_name:  rip
+    command:
+      - '-f'
+      - "2017-01-01"
+    volumes:
+    - ./data:/app/data

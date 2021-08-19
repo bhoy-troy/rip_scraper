@@ -1,0 +1,17 @@
+pre_commit.sh
+*.pyc
+__pycache__
+
+*.log
+.gitignore
+README.md
+
+
+##Folders
+/temp
+/ignore
+/env
+venv/
+data/
+.idea/
+.git/
