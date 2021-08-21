@@ -162,7 +162,7 @@ if __name__ == "__main__":
         for x in reversed(range(delta.days))
     ]
     # It is quicker to get daily deaths using multiprocessing
-    with Pool(20) as p:
+    with Pool(10) as p:
         data = p.map(process_data, date_list)
 
     if data:
