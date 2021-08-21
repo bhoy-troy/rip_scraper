@@ -1,4 +1,4 @@
-version: '3.7'
+version: '3.9'
 services:
   rip:
     build: images/python_rip
@@ -16,12 +16,12 @@ services:
     ports:
       - '8787:8787'
     volumes:
-      - ./rstudio:/home/rstudio'
-      - ./data:/home/rstudio/data'
+      - "./rstudio/:/home/rstudio"
+      - "./notebooks/:/home/rstudio/notebooks"
+      - "./data:/home/data"
     environment:
 #        - PASSWORD=yourpasswordhere
       - DISABLE_AUTH=true
 #      - USERID=${UID}
 #      - GROUPID=${GID}
       - ROOT=TRUE
-Ω
