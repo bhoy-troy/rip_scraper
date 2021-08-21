@@ -1,10 +1,27 @@
 version: '3.7'
 services:
   rip:
-    build: .
+    build: images/python_rip
     container_name:  rip
     command:
       - '-f'
       - "2017-01-01"
     volumes:
-    - ./data:/app/data
+    - ./data:/data
+    - ./rip:/rip
+
+  rstudio:
+    build: images/rstudio
+    container_name: rstudio
+    ports:
+      - '8787:8787'
+    volumes:
+      - ./rstudio:/home/rstudio'
+      - ./data:/home/rstudio/data'
+    environment:
+#        - PASSWORD=yourpasswordhere
+      - DISABLE_AUTH=true
+#      - USERID=${UID}
+#      - GROUPID=${GID}
+      - ROOT=TRUE
+Ω
