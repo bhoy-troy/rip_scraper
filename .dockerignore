@@ -1,5 +1,6 @@
 pre_commit.sh
 *.pyc
+*.pyo
 __pycache__
 
 *.log
