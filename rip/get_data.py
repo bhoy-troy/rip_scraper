@@ -1,12 +1,13 @@
 import argparse
 import datetime as dt
+import itertools
 import logging
 import time
+from multiprocessing import Pool
 
 import bs4
 import pandas as pd
 from requests import Session
-
 
 """
 Scrape deaths from rip.ie between given time frames
@@ -14,12 +15,12 @@ Scrape deaths from rip.ie between given time frames
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.FileHandler("../scraping.log"), logging.StreamHandler()],
+    handlers=[logging.FileHandler("../data.log"), logging.StreamHandler()],
 )
 
 
 logger = logging.getLogger(__name__)
-URL = "https://rip.ie"
+RIP_HOST = "https://rip.ie"
 
 path = "/Deathnotices/All"
 start = ""
@@ -29,7 +30,7 @@ page_size = 40
 page = 1
 i_display_length = ["40", "40"]
 i_display_start = 0
-echo = 0
+
 
 headers = {
     "authority": "rip.ie",
@@ -41,12 +42,12 @@ headers = {
     "sec-fetch-site": "same-origin",
     "sec-fetch-mode": "cors",
     "sec-fetch-dest": "empty",
-    "referer": "https://rip.ie/Deathnotices/All",
+    "referer": f"{RIP_HOST}/Deathnotices/All",
     "accept-language": "en-GB,en;q=0.9,en-IE;q=0.8,en-US;q=0.7",
 }
 
 
-def get_data(display_start, display_length, date_from, date_to, echo=1):
+def get_data(display_start, display_length, date_from, date_to, session, echo=1):
 
     params = {
         "do": "get_deathnotices_pages",
@@ -77,7 +78,7 @@ def get_data(display_start, display_length, date_from, date_to, echo=1):
     }
     logger.info("getting request %s- %s", display_start + 1, display_start + page_size)
     try:
-        response = session.get("https://rip.ie/deathnotices.php", params=params)
+        response = session.get(f"{RIP_HOST}/deathnotices.php", params=params)
         data = response.json()
 
     except Exception as e:
@@ -85,7 +86,7 @@ def get_data(display_start, display_length, date_from, date_to, echo=1):
         return []
 
     deaths = data["aaData"]
-    logger.info("retrieved page number %s", data["isarchive"])
+    # logger.info("retrieved page number %s", data["isarchive"])
 
     return [
         {
@@ -95,7 +96,7 @@ def get_data(display_start, display_length, date_from, date_to, echo=1):
             "published": x[3],
             "death_data": x[4],
             "id": x[5],
-            "link": f"https://rip.ie/showdn.php?dn=x{x[5]}",
+            "link": f"{RIP_HOST}/showdn.php?dn=x{x[5]}",
             "unknown_1": x[6],
             "first_name": x[7],
             "maiden_name": x[8],
@@ -111,37 +112,32 @@ def get_data(display_start, display_length, date_from, date_to, echo=1):
     ], int(data["iTotalRecords"])
 
 
-# def scrape(
-#     display_start,
-#     display_length,
-#     date_from="2016-01-01 00:00:00",
-#     date_to="2021-08-17 23:59:59",
-# ):
-#     pages_remaining = True
-#
-#     while pages_remaining:
-#
-#         deaths, total_records = get_data(
-#             display_start, display_length, date_from, date_to
-#         )
-#
-#         display_start += page_size
-#         pages_remaining = display_start < total_records
-#         df = pd.DataFrame(deaths)
-#         # df.drop_duplicates(subset=["id"], inplace=True)
-#         with open("data/data.csv", "a") as f:
-#             df.to_csv(f, mode="a", index=False, header=not f.tell())
+def process_data(date_range):
+    from_date, to_date = date_range
+    total_deaths = 0
+    session = Session()
+    session.headers = headers
 
-
-def save_data(df):
-    with open("data/data.csv", "a") as f:
-        df.to_csv(f, mode="a", index=False, header=not f.tell())
+    logger.info("getting data from %s to %s", start, end)
+    display_start = 0
+    display_length = 40
+    echo = 1
+    pages_remaining = True
+    deaths = []
+    while pages_remaining:
+        _deaths, total_records = get_data(
+            display_start, display_length, from_date, to_date, session, echo=echo
+        )
+        echo += 1
+        deaths.extend(_deaths)
+        display_start = display_start + display_length
+        pages_remaining = total_records > display_start
+    logger.info("Complete with %s deaths %s to %s", total_deaths, from_date, to_date)
+    return deaths
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
-
     parser.add_argument(
         "-f",
         "--from_date",
@@ -159,34 +155,16 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     from_date = args.from_date
-    to_date = args.to_date
-    total_deaths = 0
+    delta = args.to_date - args.from_date
 
-    start = from_date
-    end = start + dt.timedelta(days=7)
-    session = Session()
-    session.headers = headers
+    date_list = [
+        (args.to_date - dt.timedelta(days=x + 1), args.to_date - dt.timedelta(days=x))
+        for x in reversed(range(delta.days))
+    ]
+    # It is quicker to get daily deaths using multiprocessing
+    with Pool(20) as p:
+        data = p.map(process_data, date_list)
 
-    while end < to_date:
-        logger.info("getting data from %s to %s", start, end)
-        recoords_retrieved = 0
-        display_start = 0
-        display_length = 40
-        echo = 1
-        pages_remaining = True
-        deaths = []
-        while pages_remaining:
-            _deaths, total_records = get_data(
-                display_start, display_length, start, end, echo=echo
-            )
-            echo += 1
-            deaths.extend(_deaths)
-            display_start = display_start + display_length
-            pages_remaining = total_records > display_start
-
-        total_deaths += len(deaths)
-        start = end
-        end = end + dt.timedelta(days=7)
-        # save on the fly in case it fails or crashes
-        save_data(pd.DataFrame(deaths))
-    logger.info("Complete with %s deaths %s to %s", total_deaths, from_date, to_date)
+    if data:
+        df = pd.DataFrame(list(itertools.chain(*data)))
+        df.to_csv("data/data.csv", index=False, header=True)
