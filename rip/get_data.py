@@ -89,7 +89,7 @@ def get_data(
             "town": x[1],
             "county": x[2],
             "published": x[3],
-            "death_data": x[4],
+            "death_date": x[4],
             "id": x[5],
             "link": f"{RIP_HOST}/showdn.php?dn=x{x[5]}",
             "unknown_1": x[6],
