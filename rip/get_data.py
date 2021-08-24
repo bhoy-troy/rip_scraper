@@ -2,11 +2,8 @@ import argparse
 import datetime as dt
 import itertools
 import logging
-import time
 from multiprocessing import Pool, cpu_count
-from types import List
 
-import bs4
 import pandas as pd
 from requests import Session
 
@@ -44,7 +41,7 @@ headers = {
 
 def get_data(
     display_start, display_length, date_from, date_to, session, echo=1
-) -> List:
+):
     params = {
         "do": "get_deathnotices_pages",
         "iDisplayStart": display_start,
@@ -110,7 +107,7 @@ def get_data(
     ], int(data["iTotalRecords"])
 
 
-def process_data(date_range) -> List:
+def process_data(date_range):
     from_date, to_date = date_range
     session = Session()
     session.headers = headers
@@ -158,7 +155,7 @@ def get_irl_data(
     if data:
         df = pd.DataFrame(list(itertools.chain(*data)))
         # df.drop_duplicates(subset='id', keep="last", inplace=True)
-        df.to_csv("/data/deaths.csv", index=False, header=True)
+        df.to_csv("../data/deaths.csv", index=False, header=True)
 
 
 if __name__ == "__main__":
