@@ -3,7 +3,7 @@ import datetime as dt
 import itertools
 import logging
 import time
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 
 import bs4
 import pandas as pd
@@ -18,19 +18,13 @@ logging.basicConfig(
     handlers=[logging.FileHandler("../data.log"), logging.StreamHandler()],
 )
 
-
 logger = logging.getLogger(__name__)
 RIP_HOST = "https://rip.ie"
-
-path = "/Deathnotices/All"
-start = ""
-end = ""
 
 page_size = 40
 page = 1
 i_display_length = ["40", "40"]
 i_display_start = 0
-
 
 headers = {
     "authority": "rip.ie",
@@ -48,7 +42,6 @@ headers = {
 
 
 def get_data(display_start, display_length, date_from, date_to, session, echo=1):
-
     params = {
         "do": "get_deathnotices_pages",
         "iDisplayStart": display_start,
@@ -114,11 +107,10 @@ def get_data(display_start, display_length, date_from, date_to, session, echo=1)
 
 def process_data(date_range):
     from_date, to_date = date_range
-    total_deaths = 0
     session = Session()
     session.headers = headers
 
-    logger.info("getting data from %s to %s", start, end)
+    logger.info("getting data from %s to %s", from_date, to_date)
     display_start = 0
     display_length = 40
     echo = 1
@@ -132,8 +124,27 @@ def process_data(date_range):
         deaths.extend(_deaths)
         display_start = display_start + display_length
         pages_remaining = total_records > display_start
-    logger.info("Complete with %s deaths %s to %s", total_deaths, from_date, to_date)
+    logger.info("Complete with %s deaths %s to %s", len(deaths), from_date, to_date)
     return deaths
+
+
+def get_irl_data(_from_date, _to_date=dt.datetime.now().strftime("%Y-%m-%d")):
+
+    delta = _to_date - _from_date
+
+    date_ranges = [
+        (_to_date - dt.timedelta(days=x + 1), _to_date - dt.timedelta(days=x))
+        for x in reversed(range(delta.days))
+    ]
+    # It is quicker to get daily deaths using multiprocessing
+    # multiprocessing, is bound by the number of cpu cores.
+    with Pool(cpu_count()) as p:
+        data = p.map(process_data, date_ranges)
+
+    if data:
+        df = pd.DataFrame(list(itertools.chain(*data)))
+        # df.drop_duplicates(subset='id', keep="last", inplace=True)
+        df.to_csv("/data/deaths.csv", index=False, header=True)
 
 
 if __name__ == "__main__":
@@ -154,17 +165,4 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    from_date = args.from_date
-    delta = args.to_date - args.from_date
-
-    date_list = [
-        (args.to_date - dt.timedelta(days=x + 1), args.to_date - dt.timedelta(days=x))
-        for x in reversed(range(delta.days))
-    ]
-    # It is quicker to get daily deaths using multiprocessing
-    with Pool(10) as p:
-        data = p.map(process_data, date_list)
-
-    if data:
-        df = pd.DataFrame(list(itertools.chain(*data)))
-        df.to_csv("data/data.csv", index=False, header=True)
+    get_irl_data(args.from_date, args.to_date)
