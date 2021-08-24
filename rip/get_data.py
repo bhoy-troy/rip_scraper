@@ -4,6 +4,7 @@ import itertools
 import logging
 import time
 from multiprocessing import Pool, cpu_count
+from types import List
 
 import bs4
 import pandas as pd
@@ -41,7 +42,9 @@ headers = {
 }
 
 
-def get_data(display_start, display_length, date_from, date_to, session, echo=1):
+def get_data(
+    display_start, display_length, date_from, date_to, session, echo=1
+) -> List:
     params = {
         "do": "get_deathnotices_pages",
         "iDisplayStart": display_start,
@@ -69,7 +72,9 @@ def get_data(display_start, display_length, date_from, date_to, session, echo=1)
         "bSortable_3": "true",
         "bSortable_4": "true",
     }
-    logger.info("getting request %s- %s", display_start + 1, display_start + page_size)
+    logger.info(
+        "getting request %s- %s", display_start + 1, display_start + page_size
+    )
     try:
         response = session.get(f"{RIP_HOST}/deathnotices.php", params=params)
         data = response.json()
@@ -105,7 +110,7 @@ def get_data(display_start, display_length, date_from, date_to, session, echo=1)
     ], int(data["iTotalRecords"])
 
 
-def process_data(date_range):
+def process_data(date_range) -> List:
     from_date, to_date = date_range
     session = Session()
     session.headers = headers
@@ -118,18 +123,27 @@ def process_data(date_range):
     deaths = []
     while pages_remaining:
         _deaths, total_records = get_data(
-            display_start, display_length, from_date, to_date, session, echo=echo
+            display_start,
+            display_length,
+            from_date,
+            to_date,
+            session,
+            echo=echo,
         )
         echo += 1
         deaths.extend(_deaths)
         display_start = display_start + display_length
         pages_remaining = total_records > display_start
-    logger.info("Complete with %s deaths %s to %s", len(deaths), from_date, to_date)
+    logger.info(
+        "Complete with %s deaths %s to %s", len(deaths), from_date, to_date
+    )
     return deaths
 
 
-def get_irl_data(_from_date, _to_date=dt.datetime.now().strftime("%Y-%m-%d")):
-
+def get_irl_data(
+    _from_date: dt.datetime,
+    _to_date: dt.datetime = dt.datetime.now().strftime("%Y-%m-%d"),
+):
     delta = _to_date - _from_date
 
     date_ranges = [

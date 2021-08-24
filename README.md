@@ -12,3 +12,10 @@ A scraper for deaths registered on [rip.ie](https://rip.ie)
 ### Clean Up
 
     isort . && black .
+
+
+### Git Hook
+
+Create d pre-commit hook
+
+    ln -s -f ./hooks/pre_commit.sh .git/hooks/pre-commit 

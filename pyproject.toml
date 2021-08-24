@@ -1,0 +1,25 @@
+# Example configuration for Black.
+
+# NOTE: you have to use single-quoted strings in TOML for regular expressions.
+# It's the equivalent of r-strings in Python.  Multiline strings are treated as
+# verbose regular expressions by Black.  Use [ ] to denote a significant space
+# character.
+
+[tool.black]
+line-length = 79
+target-version = ['py36', 'py37', 'py38', 'py39']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # The following are specific to Black, you probably don't want those.
+  | images
+  | hooks
+  | data
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+src_paths = ["rip"]
+include_trailing_comma = true
