@@ -15,3 +15,5 @@ data/
 /notebooks/*.docx
 /notebooks/*.pdf
 /notebooks/rip_deaths.knit.md
+/notebooks/tmp_files/
+/notebooks/tmp.html

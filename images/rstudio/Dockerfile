@@ -5,14 +5,5 @@ ENV DISABLE_AUTH true
 # ENV GROUPID=${GID}
 ENV ROOT TRUE
 
-RUN apt-get  update -y && \
-        apt-get install -y libxt-dev curl
-
-
-#RUN install2.r --error \
-#    styler \
-#    tidyverse
-RUN R -e "install.packages( \
-    c('styler', 'tidyverse', 'dplyr'), \
-    dependencies=TRUE, \
-    repos='http://cran.rstudio.com/')"
+RUN apt-get update -y && \
+        apt-get install -y libxt-dev libxml2-dev  curl
