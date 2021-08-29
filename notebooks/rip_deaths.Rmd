@@ -1,34 +1,183 @@
 ---
-title: "deaths"
-author: "James Troy"
-date: "11/08/2021"
+title: "Deaths"
+author: "James troy"
+date: "21/08/2021"
 output: word_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+# # Install
+# # Install
+# install.packages("dplyr")  # for text mining
+# 
+# # install.packages("tm")  # for text mining
+# # install.packages("SnowballC") # for text stemming
+# install.packages("wordcloud") # word-cloud generator 
+# # install.packages("RColorBrewer") # color palettes
+# 
+# library(dplyr)
+# library(lubridate)
+# 
+# # library("tm")
+# # library("SnowballC")
+# library("wordcloud")
+# # library("RColorBrewer")
+
+
+defaultW <- getOption("warn") 
+
+options(warn = -1) 
+
+# options(warn = defaultW)
+InstalledPackage <- function(package)
+{
+  available <-
+    suppressMessages(suppressWarnings(
+      sapply(
+        package,
+        require,
+        quietly = TRUE,
+        character.only = TRUE,
+        warn.conflicts = FALSE
+      )
+    ))
+  missing <- package[!available]
+  if (length(missing) > 0)
+    return(FALSE)
+  return(TRUE)
+}
+
+
+
+
+usePackage <- function(package) 
+{
+    if(!InstalledPackage(package))
+    {
+      
+
+        suppressMessages(suppressWarnings(install.packages(package)))
+        if(!InstalledPackage(package)) return(FALSE)
+    }
+    return(TRUE)
+}
+
+
+libraries <- c( "ggplot2","dplyr", "lubridate", "wordcloud")
+
+for(library in libraries) 
+{ 
+  usePackage(library)
+    # if(!UsePackage(library))
+    # {
+    #     stop("Error!", library)
+    # }
+}
+
+
 ```
 
-## R Markdown
+## Covid Deaths
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
+##### Load the date
 ```{r}
-data <- read.csv(file = '../data/deaths.csv')
-
+rip_df <- read.csv(file = '../data/deaths.csv')
+covid_df <- read.csv(file = '../data/CovidStatisticsProfileHPSCIrelandOpenData.csv')
 ```
+## Prepare the date from [rip.ie](https://rip.ie)
 
-## Including Plots
+#### Remove any duplicates
 
-You can also embed plots, for example:
 
 ```{r echo=FALSE}
-# Remove any duplicates
-df <- df %>%
-  arrange(id, -id) %>%
+rip_df <- rip_df %>%
+  arrange(id,-id) %>%
   filter(duplicated(id) == FALSE)
 ```
+#### Drop unapplicable columns
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+drops <- c(
+  "link"  ,
+  "unknown_1",
+  "address",
+  "image"   ,
+  "unknown_4",
+  "unknown_5" ,
+  "unknown_6"  ,
+  "unknown_7" ,
+  "unknown_8"
+)
+
+rip_df <-rip_df[ , !(names(rip_df) %in% drops)]
+
+```
+#### Update datetime cols
+
+Convert the death_date var as a __Date__ type 
+
+```{r}
+rip_df$death_date <-  ymd_hms(rip_df$death_date)
+rip_df$death_date [is.na(rip_df$death_date) ] <- dmy(rip_df$published) 
+
+
+
+```
+
+Convert the published var as a __Date__ type 
+```{r}
+rip_df$published <- dmy( rip_df$published) 
+
+rip_df$death_date <- ymd( rip_df$death_date) 
+rip_df
+```
+
+Use __yyyy/mm/dd__ format for date of death
+
+```{r}
+rip_df$death_date <- ymd( rip_df$death_date)
+```
+Add a month and year column
+
+```{r}
+rip_df$month <- month(rip_df$death_date , label = TRUE)
+
+rip_df$year <- year(rip_df$death_date)
+
+```
+
+most common names
+
+
+```{r}
+surname_count <- rip_df  %>% count(surname) 
+first_name_count <- rip_df  %>% count(first_name) 
+set.seed(1234)
+
+
+par(mfrow=c(1,2))
+
+
+wordcloud(words = surname_count$surname, surname_count$n, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+
+wordcloud(words = first_name_count$first_name, first_name_count$n, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
