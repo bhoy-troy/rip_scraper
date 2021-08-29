@@ -4,7 +4,9 @@ import itertools
 import logging
 from multiprocessing import Pool, cpu_count
 
+import bs4
 import pandas as pd
+from dateutil.parser import parse
 from requests import Session
 
 """
@@ -30,13 +32,25 @@ headers = {
     "accept": "application/json, text/javascript, */*; q=0.01",
     "x-requested-with": "XMLHttpRequest",
     "sec-ch-ua-mobile": "?0",
-    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
     "sec-fetch-site": "same-origin",
     "sec-fetch-mode": "cors",
     "sec-fetch-dest": "empty",
     "referer": f"{RIP_HOST}/Deathnotices/All",
     "accept-language": "en-GB,en;q=0.9,en-IE;q=0.8,en-US;q=0.7",
 }
+
+
+def get_date_of_death(session, uri):
+    try:
+        response = session.get(uri)
+        soup = bs4.BeautifulSoup(response.content, "html.parser")
+        dod = soup.find("div", attrs={"class": ["ddeath"]})
+        return parse(dod.text.split(":")[-1], fuzzy=True).strftime("%Y-%m-%d")
+    except Exception as e:
+        logger.exception("couldn't parse date %s", dod)
+        logger.exception("response was  %s %s", uri, response)
 
 
 def get_data(
@@ -81,7 +95,6 @@ def get_data(
         return []
 
     deaths = data["aaData"]
-    # logger.info("retrieved page number %s", data["isarchive"])
 
     return [
         {
@@ -89,9 +102,12 @@ def get_data(
             "town": x[1],
             "county": x[2],
             "published": x[3],
-            "death_date": x[4],
+            # "death_date": x[4],
+            # "death_date": get_date_of_death(
+            #     session, f"{RIP_HOST}/showdn.php?dn={x[5]}"
+            # ),
             "id": x[5],
-            "link": f"{RIP_HOST}/showdn.php?dn=x{x[5]}",
+            "link": f"{RIP_HOST}/showdn.php?dn={x[5]}",
             "unknown_1": x[6],
             "first_name": x[7],
             "maiden_name": x[8],
@@ -147,6 +163,7 @@ def get_irl_data(
         (_to_date - dt.timedelta(days=x + 1), _to_date - dt.timedelta(days=x))
         for x in reversed(range(delta.days))
     ]
+
     # It is quicker to get daily deaths using multiprocessing
     # multiprocessing, is bound by the number of cpu cores.
     with Pool(cpu_count()) as p:
@@ -155,7 +172,7 @@ def get_irl_data(
     if data:
         df = pd.DataFrame(list(itertools.chain(*data)))
         # df.drop_duplicates(subset='id', keep="last", inplace=True)
-        df.to_csv("../data/deaths.csv", index=False, header=True)
+        df.to_csv("../data/deathstest.csv", index=False, header=True)
 
 
 if __name__ == "__main__":
