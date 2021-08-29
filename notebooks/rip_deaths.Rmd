@@ -2,90 +2,70 @@
 title: "Deaths"
 author: "James troy"
 date: "21/08/2021"
-output: word_document
+output:
+  word_document: default
+  pdf_document: default
 ---
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-# # Install
-# # Install
-# install.packages("dplyr")  # for text mining
-# 
-# # install.packages("tm")  # for text mining
-# # install.packages("SnowballC") # for text stemming
-# install.packages("wordcloud") # word-cloud generator 
-# # install.packages("RColorBrewer") # color palettes
-# 
-# library(dplyr)
-# library(lubridate)
-# 
-# # library("tm")
-# # library("SnowballC")
-# library("wordcloud")
-# # library("RColorBrewer")
+covid_data_url <-
+  'https://opendata-geohive.hub.arcgis.com/datasets/d8eb52d56273413b84b0187a4e9117be_0.csv'
+# Specify destination where file should be saved
+covid_file <-
+  "../data/CovidStatisticsProfileHPSCIrelandOpenData.csv"
+download.file(url = covid_data_url, destfile = covid_file, 'curl')
 
-
-defaultW <- getOption("warn") 
-
-options(warn = -1) 
+#
+# defaultW <- getOption("warn")
+#
+# options(warn = -1)
 
 # options(warn = defaultW)
-InstalledPackage <- function(package)
-{
-  available <-
-    suppressMessages(suppressWarnings(
-      sapply(
-        package,
-        require,
-        quietly = TRUE,
-        character.only = TRUE,
-        warn.conflicts = FALSE
-      )
-    ))
-  missing <- package[!available]
-  if (length(missing) > 0)
-    return(FALSE)
-  return(TRUE)
-}
 
 
+library("ggplot2")
+library("dplyr")
+library("lubridate")
+library("wordcloud2")
+library("stringr")
+library("tidyverse")
+library("webshot")
+library("htmlwidgets")
+library("viridis")
 
-
-usePackage <- function(package) 
-{
-    if(!InstalledPackage(package))
-    {
-      
-
-        suppressMessages(suppressWarnings(install.packages(package)))
-        if(!InstalledPackage(package)) return(FALSE)
-    }
-    return(TRUE)
-}
-
-
-libraries <- c( "ggplot2","dplyr", "lubridate", "wordcloud")
-
-for(library in libraries) 
-{ 
-  usePackage(library)
-    # if(!UsePackage(library))
-    # {
-    #     stop("Error!", library)
-    # }
-}
-
+webshot::install_phantomjs(force = TRUE)
 
 ```
+
+# Introduction
+
+
+There has been a lot of information distributed across many platforms over the last 18 month about how deadly Covid-19 is.
+The information comes from many sources, both reliable and unreliable. From Facebook to traditionally reliable media like the BBC. 
+
+Right now people are unsure which information they believe, as governments have been caught out lying and vested interests are pushing their own agendas.
+
+Here we will focus on Ireland and death rates in the country during the Covid-19 pandemic.
+
+I have harvested data from [rip.ie](https://rip.ie) and propose to compare increment in deaths due to Covid-19 with normal deaths published on [rip.ie](https://rip.ie).
+
+
+## The quiestion
+
+Is the Covid-19 death rate effecting the normal national death rate?
+
 
 ## Covid Deaths
 
 ##### Load the date
 ```{r}
 rip_df <- read.csv(file = '../data/deaths.csv')
-covid_df <- read.csv(file = '../data/CovidStatisticsProfileHPSCIrelandOpenData.csv')
+
 ```
+
 ## Prepare the date from [rip.ie](https://rip.ie)
 
 #### Remove any duplicates
@@ -93,17 +73,29 @@ covid_df <- read.csv(file = '../data/CovidStatisticsProfileHPSCIrelandOpenData.c
 
 ```{r echo=FALSE}
 rip_df <- rip_df %>%
-  arrange(id,-id) %>%
+  arrange(id, -id) %>%
   filter(duplicated(id) == FALSE)
 ```
+
+
+#### Showing the structure of the rip dataframe
+```{r echo=FALSE}
+str(rip_df)
+```
+
 #### Drop unapplicable columns
+
+Remove any unnecessary columns
 
 ```{r}
 drops <- c(
   "link"  ,
+  "death_date",
+  "maiden_name",
   "unknown_1",
   "address",
-  "image"   ,
+  "image",
+  "id",
   "unknown_4",
   "unknown_5" ,
   "unknown_6"  ,
@@ -111,73 +103,458 @@ drops <- c(
   "unknown_8"
 )
 
-rip_df <-rip_df[ , !(names(rip_df) %in% drops)]
+rip_df <- rip_df[,!(names(rip_df) %in% drops)]
 
 ```
+
+
 #### Update datetime cols
 
-Convert the death_date var as a __Date__ type 
+
+We are using the published date rather than the death date because the death date seems to after the published date.
+
+Convert the published var as a __Date__ type
 
 ```{r}
-rip_df$death_date <-  ymd_hms(rip_df$death_date)
-rip_df$death_date [is.na(rip_df$death_date) ] <- dmy(rip_df$published) 
-
-
-
-```
-
-Convert the published var as a __Date__ type 
-```{r}
-rip_df$published <- dmy( rip_df$published) 
-
-rip_df$death_date <- ymd( rip_df$death_date) 
+rip_df$published <- dmy(rip_df$published)
 rip_df
 ```
 
-Use __yyyy/mm/dd__ format for date of death
+
+##### Add a month and year column
 
 ```{r}
-rip_df$death_date <- ymd( rip_df$death_date)
-```
-Add a month and year column
 
-```{r}
-rip_df$month <- month(rip_df$death_date , label = TRUE)
+rip_df$Month_Yr <- format(as.Date(rip_df$published), "%Y-%m")
+rip_df$month <- as.factor(month(rip_df$published , label = TRUE))
+rip_df$year <- year(rip_df$published)
+rip_df$week_num <- isoweek(rip_df$published)
+rip_df$yday <- yday(rip_df$published)
 
-rip_df$year <- year(rip_df$death_date)
-
-```
-
-most common names
-
-
-```{r}
-surname_count <- rip_df  %>% count(surname) 
-first_name_count <- rip_df  %>% count(first_name) 
-set.seed(1234)
-
-
-par(mfrow=c(1,2))
-
-
-wordcloud(words = surname_count$surname, surname_count$n, min.freq = 1,
-          max.words=200, random.order=FALSE, rot.per=0.35, 
-          colors=brewer.pal(8, "Dark2"))
-
-wordcloud(words = first_name_count$first_name, first_name_count$n, min.freq = 1,
-          max.words=200, random.order=FALSE, rot.per=0.35, 
-          colors=brewer.pal(8, "Dark2"))
 ```
 
 
+##### Add factors to catagorical vars
 ```{r}
+rip_df$first_name <- as.factor(rip_df$first_name )
+rip_df$surname <- as.factor(rip_df$surname )
+rip_df$county <- as.factor(rip_df$county )
+rip_df$town <- as.factor(rip_df$town )
+
+```
+
+#### Showing the structure of the rip dataframe after some updates
+```{r echo=FALSE}
+str(rip_df)
+```
+
+
+##### Summary of date from rip.ie
+```{r}
+rip_df[rip_df==""]<-NA 
+rip_df <- rip_df %>% drop_na()
+summary(rip_df)
+```
+##### Names
+
+Lets look at the most popular names taht passed away
+
+Take the firstname and trim and shortened versions and make  the first character uppercase  and subsequent characters lowercase.
+
+For example __JAMES (Jim)__ will become __James__
+
+```{r}
+trimmer <- function(x) {
+  return (str_to_title(trimws(str_split(
+    trimws(str_split(x, " \\(")[[1]][1]), " "
+  )[[1]][1])))
+}
+
+rip_df$first_name <- lapply(rip_df$first_name, trimmer)
+```
+
+
+###### Forenames
+
+The most popular forenames  are traditional Irish names as expected
+```{r}
+first_name_count <- rip_df  %>% count(first_name)
+
+# Make the graph
+first_name_graph <-
+  wordcloud2(data = first_name_count,
+             color = "random-light",
+             backgroundColor = "grey")
+# Save png for later use
+saveWidget(first_name_graph, "tmp.html", selfcontained = F)
+webshot(
+  "tmp.html",
+  "images/first_namess.png",
+  delay = 5,
+  vwidth = 480,
+  vheight = 480
+)
+# show the graph
+first_name_graph
+```
+
+
+###### Surnames
+
+The most popular surnames are traditional Irish names as expected.
+
+```{r}
+set.seed(runif(1))
+surname_count <- rip_df  %>% count(surname)
+
+# Make the graph
+surname_graph <-
+  wordcloud2(data = surname_count,
+             color = "random-light",
+             backgroundColor = "grey")
+# Save png for later use
+saveWidget(surname_graph, "tmp.html", selfcontained = F)
+webshot(
+  "tmp.html",
+  "images/surnames.png",
+  delay = 5,
+  vwidth = 480,
+  vheight = 480
+)
+# show the graph
+surname_graph
+
+```
+
+
+#### Aggregating dates
+
+Show the number of deaths published annually from 2017 to August 2021
+
+We can see that 
+
+- 2018 had a slight increase on 2017
+- 2018 and 2019 are quite similar
+- 2020 has an increase on 2019
+- We are 65 % of the way through 2021 and the total so far is about 70 % of 2020
+
+```{r}
+
+rip_df %>% drop_na() %>% 
+  group_by(year)  %>%
+  summarise(n_deaths = n(), .groups = 'drop') %>%
+  ggplot(aes(x = year, y = n_deaths)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  geom_text(
+    aes(label = n_deaths),
+    vjust = 1.6,
+    color = "white",
+    size = 3.5
+  ) +
+  
+  labs(
+    title = "Published Deaths from rip.ie",
+    subtitle =  paste(c(
+      min(by_year$year), "to", max(by_year$year)
+    ) ,
+    collapse = " ") ,
+    y = "Published deaths",
+    x = "Year"
+  )
+
+```
+
+We can see that January has more deaths than any other month, and supprisingly has a much bigger number than December.
+
+My theory for this is that deaths between Christmas and the new year may have a delay in being published, hence the increase in |January
+```{r}
+
+ggplot(rip_df, aes(month, fill = year)) +
+  geom_histogram(stat="count", binwidth = 500)
+
+```
+
+
+
+
+```{r}
+
+monthly_change <- drop_na(
+  rip_df %>%
+    drop_na() %>%
+    group_by(Month_Yr)  %>%
+    summarise(n_deaths = n(), .groups = 'drop') %>%
+    mutate(pct_change = ((
+      n_deaths / lag(n_deaths) - 1
+    ) * 100))
+)
+# monthly_change
+
+
+ggplot(monthly_change, aes(x = Month_Yr, y = pct_change, group = 1)) +
+  geom_line(color = "red", ) +
+  # geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) +
+  scale_color_viridis() +
+
+  labs(
+    title = "Rate of change in deaths published from previous month",
+    subtitle =  paste(c(
+      min(monthly_change$Month_Yr),
+      "to",
+      max(monthly_change$Month_Yr)
+    ) ,
+    collapse = " ") ,
+    y = "% change",
+    x = "Year Month"
+  ) +
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+
+We acn see that there are an increase in deaths published at the start of the year and a decrease 
+```{r}
+
+rip_df %>%
+  
+  group_by(month,year)  %>%
+  summarise(n_deaths = n(), .groups = 'drop')  %>%
+  ggplot( aes(x=month, y=n_deaths, group=year, color=year)) +
+    geom_line() +
+  scale_color_viridis() +
+    ggtitle("Monthly deaths per year") 
+
+```
+##### Clean the covid data
+```{r}
+covid_df <-
+  read.csv(file = '../data/CovidStatisticsProfileHPSCIrelandOpenData.csv')
+drops <- c(
+  "X",
+  "Y"  ,
+  "HospitalisedCovidCases" ,
+  "RequiringICUCovidCases" ,
+  "HealthcareWorkersCovidCases",
+  "ClustersNotified",
+  "HospitalisedAged5"      ,
+  "HospitalisedAged5to14" ,
+  "HospitalisedAged15to24" ,
+  "HospitalisedAged25to34" ,
+  "HospitalisedAged35to44"  ,
+  "HospitalisedAged45to54" ,
+  "HospitalisedAged55to64"  ,
+  "Male"  ,
+  "Female"     ,
+  "Unknown"        ,
+  "Aged1to4"   ,
+  "Aged5to14"   ,
+  "Aged15to24" ,
+  "Aged25to34" ,
+  "Aged35to44"   ,
+  "Aged45to54"    ,
+  "Aged55to64"   ,
+  "Median_Age"  ,
+  "CommunityTransmission",
+  "CloseContact",
+  "TravelAbroad" ,
+  "FID"  ,
+  "StatisticsProfileDate",
+  "HospitalisedAged65to74"    ,
+  "HospitalisedAged75to84" ,
+  "HospitalisedAged85up"  ,
+  "Aged65to74"    ,
+  "Aged75to84"     ,
+  "Aged85up"     ,
+  "week_num"    ,
+  "yday"
+)
+
+covid_df <- covid_df[,!(names(covid_df) %in% drops)]
+
+names(covid_df)
+
+
+
+covid_df$Date <- ymd_hms(covid_df$Date)
+covid_df$week_num <- isoweek(covid_df$Date)
+covid_df$yday <- yday(covid_df$Date)
+
+covid_df$Month_Yr <- format(as.Date(covid_df$Date), "%Y-%m")
+covid_df$month <- as.factor(month(covid_df$Date , label = TRUE))
+covid_df$year <- year(covid_df$Date)
+
+covid_df$ConfirmedCovidDeaths[is.na(covid_df$ConfirmedCovidDeaths)] <- 0
+covid_df$CovidCasesConfirmed[is.na(covid_df$CovidCasesConfirmed)] <- 0
+# covid_df <- covid_df %>% replace(is.na(.), 0)
+```
+
+
+#### Daily covid deaths
+
+```{r}
+covid_df %>%
+  
+  ggplot(aes(
+    x = Date,
+    y = ConfirmedCovidDeaths,
+   
+  )) +
+
+  geom_line(color = "red", ) +
+  scale_color_viridis() +
+  labs(
+    title = "Daily covid deaths",
+    subtitle =  paste(c(
+      min(covid_df$Month_Yr),
+      "to",
+      max(covid_df$Month_Yr)
+    ) ,
+    collapse = " ") ,
+  ) +
+  theme(axis.text.x = element_text(angle = 90))
 ```
 
 
 ```{r}
+
+covid_df %>% ggplot(., aes(x = Date, y = TotalCovidDeaths)) +
+  geom_line(color = "steelblue") +
+  
+  
+  labs(title = "Totalcovid deaths",
+       subtitle =  paste(c(
+         "From",
+         min(covid_df$Month_Yr),
+         "to",
+         max(covid_df$Month_Yr)
+       ) ,
+       collapse = " ") ,) +
+  
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+```
+
+
+
+
+
+
+```{r}
+daily_rip_deaths <- drop_na( rip_df %>%
+  
+  group_by(published)  %>%
+  summarise(n_rip_deaths = n(), .groups = 'drop'))
+
+# 
+# daily_covid_deaths = covid_df  %>% select(Date, TotalCovidDeaths, ToatlConfirmedCovidCases)
+
+
+```
+#### Join the dataframes
+
+```{r}
+covid_rip_join <- left_join(covid_df, daily_rip_deaths, by = c("Date" = "published"))
+
+# covid_rip_join <- left_join(daily_covid_deaths, daily_rip_deaths, by = c("Date" = "published"))
+```
+
+
+#### Add new column with accumulated deaths so far per date
+
+```{r}
+totals = c()
+
+for (i in 1:nrow(covid_rip_join))
+  totals <- c(totals, sum(covid_rip_join$n_rip_deaths[1:i]))
+covid_rip_join$totalDeaths <- totals
+
+covid_rip_join <- covid_rip_join %>% drop_na()
+```
+
+
+#### L
+
+```{r}
+covid_rip_join %>%
+  ggplot(aes(x = n_rip_deaths, y = ConfirmedCovidDeaths)) +
+  geom_point(size=2) +
+  geom_smooth(method = lm, formula = y ~ splines::bs(x, 3), se = FALSE)
 ```
 
 
 ```{r}
+covid_rip_join %>%
+  ggplot(aes(x = n_rip_deaths, y = ConfirmedCovidDeaths)) +
+  geom_point(size=2) +
+  geom_smooth(method = lm, formula = y ~ splines::bs(x, 3), se = FALSE) + facet_wrap("month")
+
 ```
+
+
+```{r}
+
+covid_rip_join %>%
+  ggplot(aes(x = n_rip_deaths, y = ConfirmedCovidDeaths, colour = month)) +
+  geom_point(size=2) +
+  geom_smooth(method = lm, formula = y ~ splines::bs(x, 3), se = FALSE)
+
+```
+
+```{r}
+# covid_rip_join %>%
+#   ggplot(aes(x = Month_Yr, y = ConfirmedCovidDeaths)) +
+#   geom_point(size=2) 
+
+
+
+
+covid_rip_join %>%
+  gather(key, value, TotalCovidDeaths, totalDeaths) %>%
+  ggplot(aes(x = Date, y = value, colour = key)) +
+  geom_line() +
+  labs(title = "Accumulated rip.ie and covid deaths",
+       subtitle =  paste(c(
+         "From",
+         min(covid_df$Month_Yr),
+         "to",
+         max(covid_df$Month_Yr)
+       ) ,
+       collapse = " ") , ) +
+  
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+```
+
+
+
+
+
+```{r}
+
+
+covid_rip_join %>%
+  gather(key, death_count, ConfirmedCovidDeaths, n_rip_deaths) %>%
+  ggplot(aes(x = Date, y = death_count, colour = key)) +
+  geom_line() +
+  labs(title = "Accumulated rip.ie and covid deaths",
+       subtitle =  paste(c(
+         "From",
+         min(covid_df$Month_Yr),
+         "to",
+         max(covid_df$Month_Yr)
+       ) ,
+       collapse = " ") , ) +
+  
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+```
+
+
+
+
+
+
+
+
+
 
