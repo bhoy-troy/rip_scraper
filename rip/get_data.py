@@ -26,11 +26,14 @@ i_display_start = 0
 
 headers = {
     "authority": "rip.ie",
-    "sec-ch-ua": '"Chromium";v="92", " Not A;Brand";v="99", "Google Chrome";v="92"',
+    "sec-ch-ua": '"Chromium";v="92", " Not A;Brand";v="99",'
+    ' "Google Chrome";v="92"',
     "accept": "application/json, text/javascript, */*; q=0.01",
     "x-requested-with": "XMLHttpRequest",
     "sec-ch-ua-mobile": "?0",
-    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/92.0.4515.131 Safari/537.36",
     "sec-fetch-site": "same-origin",
     "sec-fetch-mode": "cors",
     "sec-fetch-dest": "empty",

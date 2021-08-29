@@ -1,11 +1,12 @@
 ## RIP scraper
 A scraper for deaths registered on [rip.ie](https://rip.ie)
+
+    mkdir data && curl "https://opendata-geohive.hub.arcgis.com/datasets/d8eb52d56273413b84b0187a4e9117be_0.csv" -o data/covid.csv
     
     docker-compose up
-    
+
+Or alternativelty get the data first by 
     docker-compose run rip
-    
-    curl "https://opendata-geohive.hub.arcgis.com/datasets/d8eb52d56273413b84b0187a4e9117be_0.csv?outSR=%7B%22latestWkid%22%3A3857%2C%22wkid%22%3A102100%7D" -o data/covid.csv
 
 
 ## Run from the cmd line
