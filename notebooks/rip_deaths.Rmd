@@ -6,8 +6,10 @@ output:
   word_document:
     toc: yes
     reference_docx: style_ref.docx
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
-
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -43,16 +45,21 @@ webshot::install_phantomjs(force = TRUE)
 
 # Introduction
 
+There has been a lot of information distributed across many platforms
+over the last 18 month about how deadly Covid-19 is. The information
+comes from many sources, both reliable and unreliable. From Facebook to
+traditionally reliable media like the BBC.
 
-There has been a lot of information distributed across many platforms over the last 18 month about how deadly Covid-19 is.
-The information comes from many sources, both reliable and unreliable. From Facebook to traditionally reliable media like the BBC. 
+Right now people are unsure which information they believe, as
+governments have been caught out lying and vested interests are pushing
+their own agendas.
 
-Right now people are unsure which information they believe, as governments have been caught out lying and vested interests are pushing their own agendas.
+Here we will focus on Ireland and death rates in the country during the
+Covid-19 pandemic.
 
-Here we will focus on Ireland and death rates in the country during the Covid-19 pandemic.
-
-I have harvested data from [rip.ie](https://rip.ie) and propose to compare increment in deaths due to Covid-19 with normal deaths published on [rip.ie](https://rip.ie).
-
+I have harvested data from [rip.ie](https://rip.ie) and propose to
+compare increment in deaths due to Covid-19 with normal deaths published
+on [rip.ie](https://rip.ie).
 
 # The quiestion
 
@@ -60,21 +67,26 @@ Is the Covid-19 death rate effecting the normal national death rate?
 
 # The Rationale
 
-The rationale for doing this is to verify that when there is a spike in deaths from Covid-19 then there is also a spike in the national death rate.
+The rationale for doing this is to verify that when there is a spike in
+deaths from Covid-19 then there is also a spike in the national death
+rate.
 
-Though we don't have access to the  actual deaths that occurred, the published deaths on rip.ie give a reasonable indication of the death rate in the Irish state.
+Though we don't have access to the actual deaths that occurred, the
+published deaths on rip.ie give a reasonable indication of the death
+rate in the Irish state.
 
 The covid data is published by the CSO in Ireland
 
 # Covid Deaths
 
-##Load the data
+\#\#Load the data
+
 ```{r}
 rip_df <- read.csv(file = '../data/deaths.csv')
 ```
 
- How many rows and columns have we in our rip data set?
- 
+How many rows and columns have we in our rip data set?
+
 ```{r}
 dim(rip_df)
 
@@ -84,13 +96,17 @@ dim(rip_df)
 
 ### Remove any duplicates
 
-For various reasons many deaths are published multiple times, but they keep the same ID. 
+For various reasons many deaths are published multiple times, but they
+keep the same ID.
 
-For example a person may be from Cork, but living in Dublin for many years. So te death may be published in Cork and Dublin.
+For example a person may be from Cork, but living in Dublin for many
+years. So te death may be published in Cork and Dublin.
 
-Also a person may have a death published by more than one family, but the actual death still has a unique value.
+Also a person may have a death published by more than one family, but
+the actual death still has a unique value.
 
-When the undertaker publishes the death, the option to publish multiple times is offered.
+When the undertaker publishes the death, the option to publish multiple
+times is offered.
 
 ```{r echo=FALSE}
 rip_df <- rip_df %>%
@@ -105,8 +121,8 @@ dim(rip_df)
 
 ```
 
-
 #### Showing the structure of the rip dataframe
+
 ```{r echo=FALSE}
 str(rip_df)
 ```
@@ -136,19 +152,17 @@ rip_df <- rip_df[,!(names(rip_df) %in% drops)]
 str(rip_df)
 ```
 
-
 ### Update datetime cols
 
+We are using the published date rather than the death date because the
+death date seems to after the published date.
 
-We are using the published date rather than the death date because the death date seems to after the published date.
-
-Convert the published var as a __Date__ type
+Convert the published var as a **Date** type
 
 ```{r}
 rip_df$published <- dmy(rip_df$published)
 rip_df
 ```
-
 
 ### Add a month and year column
 
@@ -162,8 +176,8 @@ rip_df$yday <- yday(rip_df$published)
 
 ```
 
-
 ### Add factors to catagorical vars
+
 Convert some columns to factors
 
 ```{r}
@@ -175,24 +189,27 @@ rip_df$town <- as.factor(rip_df$town )
 ```
 
 ### Showing the structure of the rip dataframe after some updates
+
 ```{r echo=FALSE}
 str(rip_df)
 ```
 
-
 ### Summary of date from rip.ie
+
 ```{r}
 rip_df[rip_df==""]<-NA 
 rip_df <- rip_df %>% drop_na()
 summary(rip_df)
 ```
+
 ## Names
 
 Lets look at the most popular names taht passed away
 
-Take the firstname and trim and shortened versions and make  the first character uppercase  and subsequent characters lowercase.
+Take the firstname and trim and shortened versions and make the first
+character uppercase and subsequent characters lowercase.
 
-For example __JAMES (Jim)__ will become __James__
+For example **JAMES (Jim)** will become **James**
 
 ```{r}
 trimmer <- function(x) {
@@ -204,10 +221,10 @@ trimmer <- function(x) {
 rip_df$first_name <- lapply(rip_df$first_name, trimmer)
 ```
 
-
 ### Forenames
 
-The most popular forenames  are traditional Irish names as expected
+The most popular forenames are traditional Irish names as expected
+
 ```{r}
 first_name_count <- rip_df  %>% count(first_name)
 
@@ -228,7 +245,6 @@ webshot(
 
 first_name_graph
 ```
-
 
 ### Surnames
 
@@ -261,14 +277,16 @@ surname_graph
 
 Show the number of deaths published annually from 2017 to August 2021
 
-We can see that 
+We can see that
 
-- 2018 had a slight increase on 2017
-- 2018 and 2019 are quite similar
-- 2020 has an increase on 2019
-- We are 65 % of the way through 2021 and the total so far is about 70 % of 2020
+-   2018 had a slight increase on 2017
+-   2018 and 2019 are quite similar
+-   2020 has an increase on 2019
+-   We are 65 % of the way through 2021 and the total so far is about 70
+    % of 2020
 
-This could also be explained by increased usages in the service over time.
+This could also be explained by increased usages in the service over
+time.
 
 ```{r}
 by_year = rip_df %>% drop_na() %>% 
@@ -297,18 +315,18 @@ by_year %>%
 
 ```
 
-We can see that January has more deaths than any other month, and supprisingly has a much bigger number than December.
+We can see that January has more deaths than any other month, and
+supprisingly has a much bigger number than December.
 
-My theory for this is that deaths between Christmas and the new year may have a delay in being published, hence the increase in |January
+My theory for this is that deaths between Christmas and the new year may
+have a delay in being published, hence the increase in \|January
+
 ```{r}
 
 ggplot(rip_df, aes(month, fill = year)) +
   geom_histogram(stat="count", binwidth = 500)
 
 ```
-
-
-
 
 ```{r}
 
@@ -344,8 +362,9 @@ ggplot(monthly_change, aes(x = Month_Yr, y = pct_change, group = 1)) +
 
 ```
 
+We acn see that there are an increase in deaths published at the start
+of the year and a decrease
 
-We acn see that there are an increase in deaths published at the start of the year and a decrease 
 ```{r}
 
 rip_df %>%
@@ -358,9 +377,11 @@ rip_df %>%
     ggtitle("Monthly deaths per year") 
 
 ```
+
 ##### Clean the covid data
 
 Load the covid data and remove any unnecessry columns.
+
 ```{r}
 covid_df <-
   read.csv(file = '../data/CovidStatisticsProfileHPSCIrelandOpenData.csv')
@@ -409,7 +430,8 @@ covid_df <- covid_df[,!(names(covid_df) %in% drops)]
 names(covid_df)
 ```
 
-#### Format the dates 
+#### Format the dates
+
 ```{r}
 covid_df$Date <- ymd_hms(covid_df$Date)
 covid_df$week_num <- isoweek(covid_df$Date)
@@ -421,17 +443,17 @@ covid_df$year <- year(covid_df$Date)
 ```
 
 #### Remove any null values
+
 ```{r}
 covid_df$ConfirmedCovidDeaths[is.na(covid_df$ConfirmedCovidDeaths)] <- 0
 covid_df$CovidCasesConfirmed[is.na(covid_df$CovidCasesConfirmed)] <- 0
 
 ```
 
-
 #### Daily covid deaths
 
-As we can see we have had 2 serious waves. At the start of Q2 in 2020 and Q1 in
-2021 and to a lesser extent the end of Q2 in 2021
+As we can see we have had 2 serious waves. At the start of Q2 in 2020
+and Q1 in 2021 and to a lesser extent the end of Q2 in 2021
 
 ```{r}
 covid_df %>%
@@ -458,7 +480,8 @@ covid_df %>%
 
 #### Total covid deaths
 
-Incremental covid deaths, again we can see 2 spikes in deaths in Q2 of 2020 and Q1 2021
+Incremental covid deaths, again we can see 2 spikes in deaths in Q2 of
+2020 and Q1 2021
 
 ```{r}
 
@@ -483,12 +506,12 @@ covid_df %>% ggplot(., aes(x = Date, y = TotalCovidDeaths)) +
 
 Get the daily death count from rip.ie
 
-
 ```{r}
 daily_rip_deaths <- drop_na( rip_df %>%
   group_by(published)  %>%
   summarise(n_rip_deaths = n(), .groups = 'drop'))
 ```
+
 #### Join the dataframes
 
 Using left join, join the covid and rip daily data
@@ -499,9 +522,9 @@ covid_rip_join <- left_join(covid_df, daily_rip_deaths, by = c("Date" = "publish
 str(covid_rip_join)
 ```
 
-
 #### Sum daily deaths
-Add new column with accumulated deaths so far per date for RIP.ie, 
+
+Add new column with accumulated deaths so far per date for RIP.ie,
 similar to TotalCovidDeaths variable
 
 ```{r}
@@ -514,11 +537,10 @@ covid_rip_join$totalDeaths <- totals
 covid_rip_join <- covid_rip_join %>% drop_na()
 ```
 
+#### Regression
 
-#### Regression 
-
-Draw a regression line between ConfirmedCovidDeaths for a day and number of 
-reported rip deaths.
+Draw a regression line between ConfirmedCovidDeaths for a day and number
+of reported rip deaths.
 
 As the number of deaths grow it becomes less accurate.
 
@@ -528,8 +550,9 @@ covid_rip_join %>%
   geom_point(size=2) +
   geom_smooth(method = lm, formula = y ~ splines::bs(x, 3), se = FALSE)
 ```
-Draw a regression line between ConfirmedCovidDeaths for a day and number of 
-reported rip deaths per month.
+
+Draw a regression line between ConfirmedCovidDeaths for a day and number
+of reported rip deaths per month.
 
 As the number of deaths grow it becomes less accurate.
 
@@ -540,7 +563,6 @@ covid_rip_join %>%
   geom_smooth(method = lm, formula = y ~ splines::bs(x, 3), se = FALSE) + facet_wrap("month")
 
 ```
-
 
 ```{r}
 
@@ -575,13 +597,10 @@ covid_rip_join %>%
   theme(axis.text.x = element_text(angle = 60, hjust = 1))
 ```
 
-
-
-
 #### Is there a relationship?
 
-We can see on the graph below that as the number of deaths from covid rise then
-there is a spike also in published deaths from rip.ie.
+We can see on the graph below that as the number of deaths from covid
+rise then there is a spike also in published deaths from rip.ie.
 
 ```{r}
 
@@ -603,13 +622,3 @@ covid_rip_join %>%
 
 
 ```
-
-
-
-
-
-
-
-
-
-

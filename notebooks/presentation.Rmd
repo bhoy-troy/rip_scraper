@@ -18,13 +18,17 @@ But whats the truth?
 The data is sourced from RIP.ie and the CSO.
 
 
-## Popular names
+## Popular First Names
 
-![Popular firstnames of people that passed away.](images/first_names.png)
+![Popular first names of people that passed away.](downloads/first_names.png)
 ## Popular Surnames
 
-![Popular surnames of people that passed away.](images/surnames.png)
+![Popular surnames of people that passed away.](downloads/surnames.png)
 
+##  Annual Death Rate
+2021 is 66 % of the way through the year, but 70% of 2020 death rate
+
+![The anual death rates](downloads/annual_death_rate.png)
 
 ## Slide with R Output
 
