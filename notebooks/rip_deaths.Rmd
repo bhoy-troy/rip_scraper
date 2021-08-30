@@ -220,10 +220,10 @@ first_name_graph <-
 saveWidget(first_name_graph, "tmp.html", selfcontained = F)
 webshot(
   "tmp.html",
-  "images/first_namess.png",
+  "images/first_names.png",
   delay = 5,
-  vwidth = 480,
-  vheight = 480
+  vwidth = 800,
+  vheight = 400
 )
 
 first_name_graph
@@ -249,8 +249,8 @@ webshot(
   "tmp.html",
   "images/surnames.png",
   delay = 5,
-  vwidth = 480,
-  vheight = 480
+  vwidth = 800,
+  vheight = 400
 )
 # show the graph
 surname_graph

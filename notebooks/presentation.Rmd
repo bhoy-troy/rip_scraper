@@ -1,0 +1,40 @@
+---
+title: "The Covid Death Rate"
+output: 
+  powerpoint_presentation:
+    reference_doc: template.pptx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Has Covid-19 increase the national death rate?
+
+#### Information from different sources says diffenent things
+
+But whats the truth?
+
+The data is sourced from RIP.ie and the CSO.
+
+
+## Popular names
+
+![Popular firstnames of people that passed away.](images/first_names.png)
+## Popular Surnames
+
+![Popular surnames of people that passed away.](images/surnames.png)
+
+
+## Slide with R Output
+
+```{r cars, echo = TRUE}
+summary(cars)
+```
+
+## Slide with Plot
+
+```{r pressure}
+plot(pressure)
+```
+
