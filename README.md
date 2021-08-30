@@ -23,3 +23,8 @@ Or alternativelty get the data first by
 Create d pre-commit hook
 
     ln -s -f ./hooks/pre_commit.sh .git/hooks/pre-commit 
+    
+### Docker Linting
+
+    docker run --rm -i hadolint/hadolint < images/rstudio/Dockerfile
+    docker run --rm -i hadolint/hadolint < images/python_rip/Dockerfile

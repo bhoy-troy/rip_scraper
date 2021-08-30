@@ -2,7 +2,7 @@
 
 PIPENV_VERBOSITY=-1
 
-
+pipenv lock -r > images/python_rip/requirements.txt
 
 isort --check rip
 CHECK_CODE=$?
@@ -24,12 +24,5 @@ if [ ${CHECK_CODE} -eq 0 ]; then
   flake8 rip
   CHECK_CODE=$?
 fi
-
-
-if [ ${CHECK_CODE} -eq 0 ]; then
-  pipenv lock -r > images/python_rip/requirements.txt
-  CHECK_CODE=$?
-fi
-
 
 exit ${CHECK_CODE}
